@@ -23,19 +23,13 @@ This feature owns user and company profile surfaces on the web client in `apps/w
 - `api/searchService.ts`
 - `hooks/useUserProfile.ts`
 - `hooks/useSearchUsers.ts`
+- `hooks/useRecentSearches.ts`: recent profile searches shown in the shared search panel, persisted per user in `localStorage`.
+- `state/recentSearchStack.ts`: bounded stack (LIFO) behind recent searches; unit tests in `apps/web/tests`.
 - `hooks/useFollowAction.ts`
 - `state/useUsers.ts`
 - `state/useFollow.ts`
 - `components/EditProfile.tsx`
 - `components/HeaderProfile.tsx`
-
-## Recent searches
-
-- `state/recentSearchStack.ts` implements the reusable in-memory stack for recent profiles.
-- `hooks/useRecentSearches.ts` synchronizes the stack with browser `localStorage`.
-- Storage keys are scoped to the authenticated user: `weunite.search.recent.{userId}`.
-- The web search panel stores at most 10 profiles and keeps the most recently opened profile at the top.
-- This history is local to the browser and does not change API or database behavior.
 
 ## Validation
 

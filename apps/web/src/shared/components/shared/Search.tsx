@@ -7,8 +7,61 @@ import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { getInitials } from "@/shared/utils/getInitials";
 import { useAuthStore } from "@/features/auth/stores/useAuthStore";
-import { useRecentSearches } from "@/features/profile/hooks/useRecentSearches";
-import type { User } from "@/shared/types/user.types";
+import {
+  useRecentSearches,
+  type RecentSearchUser,
+} from "@/features/profile/hooks/useRecentSearches";
+
+function SearchUserRow({
+  user,
+  onSelect,
+  onRemove,
+}: {
+  user: RecentSearchUser;
+  onSelect: (user: RecentSearchUser) => void;
+  onRemove?: (username: string) => void;
+}) {
+  const userName = user.name || "Usuário desconhecido";
+
+  return (
+    <div
+      className="flex items-center justify-center space-x-3 p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors"
+      onClick={() => onSelect(user)}
+    >
+      <Avatar className="h-[2.8em] w-[2.8em]">
+        <AvatarImage
+          src={user.profileImg}
+          alt={userName}
+          className="aspect-square h-full w-full rounded-full object-cover"
+        />
+        <AvatarFallback className="flex h-full w-full items-center justify-center rounded-full bg-muted">
+          {getInitials(userName)}
+        </AvatarFallback>
+      </Avatar>
+
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{userName}</p>
+        <p className="text-xs text-muted-foreground truncate">
+          @{user.username}
+        </p>
+      </div>
+
+      {onRemove && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onRemove(user.username);
+          }}
+          className="p-1 rounded-full hover:bg-background transition-colors"
+          aria-label={`Remover ${userName} das pesquisas recentes`}
+        >
+          <X className="h-4 w-4 text-muted-foreground hover:cursor-pointer" />
+        </button>
+      )}
+    </div>
+  );
+}
 
 export function Search({
   isOpen = false,
@@ -24,11 +77,16 @@ export function Search({
   const navigate = useNavigate();
   const { data: users, isLoading, error } = useSearchUsers(searchQuery);
   const currentUserId = useAuthStore((state) => state.user?.id);
-  const { recentUsers, addRecent, removeRecent, clearRecent } =
-    useRecentSearches(currentUserId);
+  const {
+    recentSearches,
+    addRecentSearch,
+    removeRecentSearch,
+    clearRecentSearches,
+  } = useRecentSearches(currentUserId ? String(currentUserId) : undefined);
 
-  const handleUserClick = (user: User) => {
-    addRecent(user);
+  const handleUserClick = (user: RecentSearchUser) => {
+    // Empilha o perfil aberto no topo da pilha de pesquisas recentes.
+    addRecentSearch(user);
     navigate(`/profile/${user.username}`);
     handleOpenChange(false);
     setSearchQuery("");
@@ -97,66 +155,33 @@ export function Search({
           <div className="mb-4"></div>
 
           <div className="flex-1 overflow-y-auto">
-            {searchQuery.length === 0 && recentUsers.length > 0 && (
+            {searchQuery.length === 0 && recentSearches.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Digite para começar a pesquisar...
+              </p>
+            )}
+
+            {searchQuery.length === 0 && recentSearches.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold">Recentes</p>
+                  <h3 className="text-sm font-semibold">Recentes</h3>
                   <button
                     type="button"
-                    onClick={clearRecent}
-                    className="text-xs text-muted-foreground hover:text-foreground"
+                    onClick={clearRecentSearches}
+                    className="text-xs font-medium text-primary hover:underline hover:cursor-pointer"
                   >
                     Limpar tudo
                   </button>
                 </div>
-
-                {recentUsers.map((user) => {
-                  const userName = user.name || "Usuário desconhecido";
-                  return (
-                    <div
-                      key={user.id}
-                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors"
-                      onClick={() => handleUserClick(user)}
-                    >
-                      <Avatar className="h-[2.8em] w-[2.8em]">
-                        <AvatarImage
-                          src={user.profileImg}
-                          alt={userName}
-                          className="aspect-square h-full w-full rounded-full object-cover"
-                        />
-                        <AvatarFallback className="flex h-full w-full items-center justify-center rounded-full bg-muted">
-                          {getInitials(userName)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {userName}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          @{user.username}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        aria-label={`Remover ${userName} dos recentes`}
-                        className="p-1 rounded-full hover:bg-background"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          if (user.id) removeRecent(user.id);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  );
-                })}
+                {recentSearches.map((user) => (
+                  <SearchUserRow
+                    key={user.username}
+                    user={user}
+                    onSelect={handleUserClick}
+                    onRemove={removeRecentSearch}
+                  />
+                ))}
               </div>
-            )}
-
-            {searchQuery.length === 0 && recentUsers.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                Nenhuma pesquisa recente.
-              </p>
             )}
 
             {searchQuery.length > 0 && isLoading && (
@@ -199,36 +224,13 @@ export function Search({
                 <div className="space-y-2">
                   {users
                     .filter((user) => user.id !== String(currentUserId))
-                    .map((user) => {
-                      const userName = user.name || "Usuário desconhecido";
-                      return (
-                        <div
-                          key={user.id}
-                          className="flex items-center justify-center space-x-3 p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors"
-                          onClick={() => handleUserClick(user)}
-                        >
-                          <Avatar className="h-[2.8em] w-[2.8em]">
-                            <AvatarImage
-                              src={user.profileImg}
-                              alt={userName}
-                              className="aspect-square h-full w-full rounded-full object-cover"
-                            />
-                            <AvatarFallback className="flex h-full w-full items-center justify-center rounded-full bg-muted">
-                              {getInitials(userName)}
-                            </AvatarFallback>
-                          </Avatar>
-
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              {userName}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              @{user.username}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                    .map((user) => (
+                      <SearchUserRow
+                        key={user.id ?? user.username}
+                        user={user}
+                        onSelect={handleUserClick}
+                      />
+                    ))}
                 </div>
               )}
           </div>
