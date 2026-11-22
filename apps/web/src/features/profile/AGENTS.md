@@ -29,6 +29,14 @@ This feature owns user and company profile surfaces on the web client in `apps/w
 - `components/EditProfile.tsx`
 - `components/HeaderProfile.tsx`
 
+## Recent searches
+
+- `state/recentSearchStack.ts` implements the reusable in-memory stack for recent profiles.
+- `hooks/useRecentSearches.ts` synchronizes the stack with browser `localStorage`.
+- Storage keys are scoped to the authenticated user: `weunite.search.recent.{userId}`.
+- The web search panel stores at most 10 profiles and keeps the most recently opened profile at the top.
+- This history is local to the browser and does not change API or database behavior.
+
 ## Validation
 
 - `pnpm --filter @weunite/web lint`

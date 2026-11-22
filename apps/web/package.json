@@ -8,7 +8,7 @@
     "typecheck": "tsc -b",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "node -e \"console.log('No web tests configured yet')\"",
+    "test": "node --experimental-strip-types --test tests/recentSearchStack.test.ts",
     "format": "pnpm exec prettier --check .",
     "preview": "vite preview",
     "clean": "node -e \"console.log('No clean step configured for @weunite/web yet')\""
